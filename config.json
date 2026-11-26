@@ -1,0 +1,58 @@
+{
+  "telegram": {
+    "bot_token": "",
+    "chat_id": "",
+    "titles_per_source": 15,
+    "photo_previews_per_run": 10,
+    "trend_hours": [9, 13, 18, 22],
+    "notify_when_empty": false,
+    "report_errors": true
+  },
+
+  "sources": {
+    "theqoo": true,
+    "dc_best": true,
+    "dc_stockus": true,
+    "fmkorea": true,
+    "natepann": true,
+    "instiz": true,
+    "ruliweb": true,
+    "reddit": true,
+    "9gag": true,
+    "instagram": true,
+    "trends": true
+  },
+
+  "max_pages": {
+    "theqoo": 10, "dc_best": 10, "dc_stockus": 5, "fmkorea": 8,
+    "natepann": 3, "instiz": 15, "ruliweb": 8
+  },
+  "default_max_pages": 8,
+
+  "trends": { "google": true, "signal": true, "x": true, "youtube": true },
+  "youtube_api_key": "",
+
+  "reddit_subs": ["memes", "me_irl", "MadeMeSmile", "aww", "BeAmazed", "interestingasfuck", "funny", "dogs"],
+  "reddit_limit": 25,
+  "ninegag_limit": 30,
+
+  "instagram": {
+    "graph_version": "v21.0",
+    "ig_user_id": "",
+    "access_token": "",
+    "accounts": [
+      "tlqejr_arcive_izback",
+      "you_lostmama6974", "print_cheonanjeil", "love_like_pirates", "netdigger1",
+      "kinetic_trigger", "reels_fun_fun", "trend.archive_kr", "zoo_chive_u",
+      "memmeespace", "jung.sangin", "peanut.zzal", "hahahohumor", "windows.98b", "anything.zips",
+      "sitreps2steercos", "pug_l_o_v_e", "screet._message", "zzal_news"
+    ]
+  },
+
+  "download_videos": true,
+  "max_media_per_post": 60,
+  "max_file_mb": 80,
+  "min_image_bytes": 4000,
+  "request_delay_sec": 1.0,
+  "fmkorea_delay_sec": 2.5
+}

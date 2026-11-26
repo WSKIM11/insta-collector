@@ -1,0 +1,4 @@
+data/
+logs/
+__pycache__/
+python_path.txt
