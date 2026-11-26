@@ -519,21 +519,77 @@ def collect_community(key, seen, dry=False):
 
 
 # --------------------------------------------------------------- foreign memes
+REDDIT_UA = "windows:meme-collector:1.0 (personal use)"
+_reddit_tok = {}
+
+
+def reddit_token():
+    cid, sec = CFG.get("reddit_client_id"), CFG.get("reddit_client_secret")
+    if not cid or not sec:
+        return None
+    if _reddit_tok.get("exp", 0) > time.time():
+        return _reddit_tok["tok"]
+    try:
+        r = requests.post("https://www.reddit.com/api/v1/access_token", auth=(cid, sec),
+                          data={"grant_type": "client_credentials"},
+                          headers={"User-Agent": REDDIT_UA}, timeout=20)
+        j = r.json()
+        _reddit_tok.update(tok=j["access_token"], exp=time.time() + j.get("expires_in", 3600) - 60)
+        return j["access_token"]
+    except Exception as e:
+        log.warning("reddit 토큰 실패: %s", e)
+        return None
+
+
+def reddit_rss(sub, s_seen, dry):
+    out = []
+    try:
+        r = get(f"https://www.reddit.com/r/{sub}/top/.rss?t=day&limit=25",
+                headers={"User-Agent": REDDIT_UA}, tries=1)
+    except Exception as e:
+        log.warning("reddit %s RSS 실패: %s", sub, str(e)[:120])
+        return out
+    root = ET.fromstring(r.content)
+    A = "{http://www.w3.org/2005/Atom}"
+    for e in root.iter(A + "entry"):
+        pid = (e.findtext(A + "id") or "").split("_")[-1]
+        if not pid or pid in s_seen:
+            continue
+        link = e.find(A + "link").get("href") if e.find(A + "link") is not None else ""
+        content = e.findtext(A + "content") or ""
+        imgs = [html.unescape(u) for u in re.findall(r'href="(https://i\.redd\.it/[^"]+)"', content)]
+        if not imgs:
+            continue
+        post = {"id": pid, "url": link, "title": f"[r/{sub}] {e.findtext(A + 'title') or ''}",
+                "text": "", "images": imgs[:1], "videos": [], "meta": {}}
+        if dry:
+            continue
+        save_post("reddit", post)
+        s_seen[pid] = today()
+        out.append(post)
+    return out
+
+
 def collect_reddit(seen, dry=False):
     s_seen = seen.setdefault("reddit", {})
     out = []
     cutoff = time.time() - 26 * 3600
     for sub in CFG.get("reddit_subs", []):
         data = None
-        for host in ("https://www.reddit.com", "https://old.reddit.com"):
-            try:
-                r = get(f"{host}/r/{sub}/top.json?t=day&limit={CFG.get('reddit_limit', 25)}",
-                        headers={"User-Agent": "meme-collector/1.0 (personal use)"}, tries=2)
-                data = r.json()
-                break
-            except Exception as e:
-                log.warning("reddit %s 실패(%s): %s", sub, host, e)
+        lim = CFG.get('reddit_limit', 25)
+        tok = reddit_token()
+        try:
+            if tok:
+                r = get(f"https://oauth.reddit.com/r/{sub}/top?t=day&limit={lim}&raw_json=1",
+                        headers={"User-Agent": REDDIT_UA, "Authorization": f"bearer {tok}"}, tries=2)
+            else:
+                r = get(f"https://www.reddit.com/r/{sub}/top.json?t=day&limit={lim}&raw_json=1",
+                        headers={"User-Agent": REDDIT_UA}, tries=1)
+            data = r.json()
+        except Exception as e:
+            log.warning("reddit %s JSON 실패: %s → RSS 시도", sub, str(e)[:120])
         if not data:
+            out += reddit_rss(sub, s_seen, dry)
             continue
         for ch in data.get("data", {}).get("children", []):
             p = ch.get("data", {})
@@ -572,7 +628,8 @@ def collect_9gag(seen, dry=False):
     r = get("https://9gag.com/v1/group-posts/group/default/type/hot",
             headers={"Accept": "application/json"}, tries=2)
     posts = r.json().get("data", {}).get("posts", [])
-    cutoff = time.time() - 26 * 3600
+    log.info("9gag 응답 %d개", len(posts))
+    cutoff = time.time() - 48 * 3600
     for p in posts[: CFG.get("ninegag_limit", 30)]:
         pid = p.get("id")
         if not pid or pid in s_seen or p.get("nsfw") or p.get("creationTs", time.time()) < cutoff:
@@ -971,6 +1028,8 @@ def load_config():
     ig["ig_user_id"] = env("IG_USER_ID") or ig.get("ig_user_id", "")
     ig["access_token"] = env("IG_ACCESS_TOKEN") or ig.get("access_token", "")
     cfg["youtube_api_key"] = env("YOUTUBE_API_KEY") or cfg.get("youtube_api_key", "")
+    cfg["reddit_client_id"] = env("REDDIT_CLIENT_ID") or cfg.get("reddit_client_id", "")
+    cfg["reddit_client_secret"] = env("REDDIT_CLIENT_SECRET") or cfg.get("reddit_client_secret", "")
     if env("SEND_ALL_PHOTOS"):
         t["send_all_photos"] = env("SEND_ALL_PHOTOS").lower() in ("1", "true", "yes")
     return cfg

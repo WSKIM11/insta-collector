@@ -10,6 +10,10 @@ on:
         description: "테스트용 페이지 수 제한 (비우면 설정대로)"
         required: false
         default: ""
+      only:
+        description: "일부 소스만 (예: reddit,9gag)"
+        required: false
+        default: ""
       save_state:
         description: "수집 기록 저장 (false면 다음 실행 때 같은 글을 다시 수집)"
         required: false
@@ -43,8 +47,11 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           MAX_PAGES: ${{ github.event.inputs.max_pages }}
-        run: python collector.py ${MAX_PAGES:+--max-pages $MAX_PAGES}
+          ONLY: ${{ github.event.inputs.only }}
+        run: python collector.py ${MAX_PAGES:+--max-pages $MAX_PAGES} ${ONLY:+--only $ONLY}
       - name: Save state (seen list)
         if: always() && github.event.inputs.save_state != 'false'
         run: |
