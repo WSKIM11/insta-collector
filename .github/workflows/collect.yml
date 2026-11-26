@@ -4,7 +4,16 @@ on:
   schedule:
     - cron: "5 * * * *"      # 매시 5분 (UTC 기준이지만 매시간이라 상관없음)
     - cron: "55 14 * * *"    # 한국시간 23:55 마감 수집
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "테스트용 페이지 수 제한 (비우면 설정대로)"
+        required: false
+        default: ""
+      save_state:
+        description: "수집 기록 저장 (false면 다음 실행 때 같은 글을 다시 수집)"
+        required: false
+        default: "true"
 
 permissions:
   contents: write
@@ -34,9 +43,10 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-        run: python collector.py
+          MAX_PAGES: ${{ github.event.inputs.max_pages }}
+        run: python collector.py ${MAX_PAGES:+--max-pages $MAX_PAGES}
       - name: Save state (seen list)
-        if: always()
+        if: always() && github.event.inputs.save_state != 'false'
         run: |
           git config user.name "collector-bot"
           git config user.email "collector-bot@users.noreply.github.com"
