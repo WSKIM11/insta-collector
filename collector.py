@@ -992,6 +992,9 @@ def run(only=None, dry=False):
 
 
 def _run(only, dry):
+    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and not CFG.get("telegram", {}).get("bot_token"):
+        log.info("텔레그램 Secrets 미설정 → 예약 실행 건너뜀 (설정 후 다음 정각부터 수집)")
+        return
     log.info("===== 수집 시작 %s =====", now().strftime("%Y-%m-%d %H:%M"))
     seen = load_seen()
     enabled = CFG.get("sources", {})
